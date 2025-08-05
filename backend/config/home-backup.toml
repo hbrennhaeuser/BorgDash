@@ -1,0 +1,7 @@
+job_id = "home-backup"
+display_name = "Home Backup"
+api_keys = [ "changme",]
+tags = [ "home", "personal", "daily",]
+description = "Daily backup of home directory"
+backup_type = "borgmatic"
+max_age = "25h"

@@ -1,0 +1,7 @@
+job_id = "documents-backup"
+display_name = "Documents Backup"
+api_keys = [ "changeme",]
+tags = [ "docs", "work", "monthly",]
+description = "Monthly documents backup"
+backup_type = "borgmatic"
+max_age = "35d"

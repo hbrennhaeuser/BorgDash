@@ -1,0 +1,7 @@
+job_id = "server-backup"
+display_name = "Server Backup"
+api_keys = [ "changeme",]
+tags = [ "server", "critical", "weekly",]
+description = "Weekly server backup"
+backup_type = "borgmatic"
+max_age = "8d"
