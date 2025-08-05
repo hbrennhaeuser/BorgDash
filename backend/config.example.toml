@@ -1,0 +1,16 @@
+# BorgDash Configuration Example
+
+[server]
+host = "0.0.0.0"
+port = 80
+debug = false
+data_dir = "/data"
+config_dir = "/config/jobs"
+
+[auth]
+username = "admin"
+password = "admin"
+jwt_secret = "your-jwt-secret-change-this"
+jwt_expire_hours = 24
+api_tokens = ["your-api-token-change-this", "another-token-if-needed"]
+
