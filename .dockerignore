@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Development files
+.vscode/
+.idea/
+
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/data/
+backend/*.pyc
+backend/.env
+backend/config.toml
+backend/config/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+
+# Docker
+docker-compose.yml
+Dockerfile*
+.dockerignore
+
+# Other
+*.log
+.DS_Store

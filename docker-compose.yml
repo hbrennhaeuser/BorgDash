@@ -1,0 +1,15 @@
+services:
+  borgdash:
+    image: ghcr.io/hbrennhaeuser/borgdash:latest
+    ports:
+      - "5680:80"
+    volumes:
+      - data:/data
+      - config:/config
+    restart: unless-stopped
+    environment:
+      BORGDASH_CONFIG: /config/config.toml
+
+volumes:
+  data:
+  config:
