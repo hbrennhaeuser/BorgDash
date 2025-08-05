@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "files": "warn",
+    "dependencies": "warn",
+    "unlisted": "warn",
+    "unresolved": "warn"
+  },
+  "ignoreDependencies": [
+    "tailwindcss"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignore": [
+    "env.d.ts"
+  ]
+}

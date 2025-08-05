@@ -1,0 +1,33 @@
+{
+  "name": "borgdash-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix"
+  },
+  "dependencies": {
+    "@rushstack/eslint-patch": "^1.12.0",
+    "@tailwindcss/vite": "^4.0.0-alpha.28",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "tailwindcss": "^4.0.0-alpha.28",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5",
+    "vue-tsc": "^3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/eslint-config-typescript": "^12.0.0",
+    "@vue/tsconfig": "^0.5.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.19.2",
+    "typescript": "~5.3.0",
+    "vite": "^7.0.6",
+    "vue-tsc": "^3.0.5"
+  }
+}

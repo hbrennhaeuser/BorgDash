@@ -1,0 +1,84 @@
+import type { Job, JobStats, Archive, BackupRun, BackupRunDetails, BackupEvent, EventInfoDetails, PaginatedResponse } from '@/types'
+import { authService } from '@/services/auth'
+
+const API_BASE = '/api'
+
+class ApiService {
+  private async request<T>(endpoint: string): Promise<T> {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    }
+
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      headers
+    })
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Unauthorized - token likely expired
+        authService.logout()
+        // Redirect to login page
+        window.location.href = '/login'
+        throw new Error('Authentication expired. Please log in again.')
+      }
+      throw new Error(`API request failed: ${response.statusText}`)
+    }
+    return response.json()
+  }
+
+  // Get all jobs with optional search and filter parameters
+  async getJobs(queryParams?: string): Promise<Job[]> {
+    const endpoint = queryParams ? `/jobs?${queryParams}` : '/jobs'
+    return this.request<Job[]>(endpoint)
+  }
+
+  // Get specific job details
+  async getJob(jobId: string): Promise<Job> {
+    return this.request<Job>(`/jobs/${jobId}`)
+  }
+
+  // Get job statistics
+  async getJobStats(jobId: string): Promise<JobStats> {
+    return this.request<JobStats>(`/jobs/${jobId}/stats`)
+  }
+
+  // Get job archives with pagination and sorting
+  async getJobArchives(
+    jobId: string, 
+    offset: number = 0, 
+    limit: number = 15, 
+    sortBy: string = 'date', 
+    sortOrder: string = 'desc'
+  ): Promise<PaginatedResponse<Archive>> {
+    const params = new URLSearchParams({
+      offset: offset.toString(),
+      limit: limit.toString(),
+      sort_by: sortBy,
+      sort_order: sortOrder
+    })
+    return this.request<PaginatedResponse<Archive>>(`/jobs/${jobId}/archives?${params}`)
+  }
+
+  // Get job backup runs
+  async getJobRuns(jobId: string, limit: number = 15): Promise<BackupRun[]> {
+    return this.request<BackupRun[]>(`/jobs/${jobId}/runs?limit=${limit}`)
+  }
+
+  // Get detailed backup run with paginated log
+  async getBackupRunDetails(jobId: string, runId: string, offset: number = 0, limit: number = 20): Promise<BackupRunDetails> {
+    return this.request<BackupRunDetails>(`/jobs/${jobId}/runs/${runId}?offset=${offset}&limit=${limit}`)
+  }
+
+  // Get job events with pagination (sorted by timestamp desc)
+  async getJobEvents(jobId: string, offset: number = 0, limit: number = 15): Promise<PaginatedResponse<BackupEvent>> {
+    return this.request<PaginatedResponse<BackupEvent>>(`/jobs/${jobId}/events?offset=${offset}&limit=${limit}`)
+  }
+
+  // Get event info content with pagination
+  async getEventInfo(jobId: string, eventId: string, offset: number = 0, limit: number = 50): Promise<EventInfoDetails> {
+    return this.request<EventInfoDetails>(`/jobs/${jobId}/events/${eventId}/info?offset=${offset}&limit=${limit}`)
+  }
+}
+
+export const apiService = new ApiService()
