@@ -1,0 +1,17 @@
+site_name: BorgDash
+site_description: Central monitoring dashbord for borg and borgmatic backups
+
+nav:
+  - Home: index.md
+  - Quick Start: quickstart.md
+  - Configuration: configuration.md
+  - API Reference: api.md
+
+theme:
+  name: material
+
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc
