@@ -1,9 +1,9 @@
 # BorgDash
 
-![Early Alpha Banner](https://img.shields.io/badge/STATUS-EARLY%20ALPHA-red) ![Needs Refinement](https://img.shields.io/badge/NEEDS-REFINEMENT-yellow)
+![Early Version Banner](https://img.shields.io/badge/STATUS-EARLY%20VERSION-red)
 
 
-> ⚠️ **EARLY ALPHA**: This project is in an early  stage and  heavily leveraged AI in the initial project implementation. It is in need of human validation of all components, further refinement and testing.
+> **EARLY VERSION**: This project is in an early  stage and  heavily leveraged AI in the initial project implementation. It is in need of human validation of all components, further refinement and testing.
 
 ## Overview
 
