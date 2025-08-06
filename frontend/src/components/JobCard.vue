@@ -176,58 +176,69 @@
           <LoadingSpinner v-if="loadingEvents" size="sm" text="Loading events..." />
           <div v-else-if="sortedEvents.length > 0" class="space-y-2">
             <div
-              v-for="event in sortedEvents"
+              v-for="(event, index) in sortedEvents"
               :key="event.id"
-              class="bg-gray-50 rounded-md"
             >
-              <div 
-                class="flex items-center justify-between py-2 px-3"
-                :class="{ 'cursor-pointer hover:bg-gray-100 transition-colors': event.hasInfo }"
-                @click="event.hasInfo ? toggleEventInfo(event.id) : null"
-              >
-                <div class="flex items-center space-x-2">
-                  <span 
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                    :class="getEventTypeColor(event.type)"
-                  >
-                    <component :is="getEventIconComponent(event.type)" class="w-3 h-3" />
-                  </span>
-                  <span class="text-sm text-gray-900">{{ event.message }}</span>
-                  <span class="text-xs text-gray-500">({{ event.timestampRelative || formatRelativeTime(event.timestamp) }})</span>
+              <div class="bg-gray-50 rounded-md">
+                <div 
+                  class="flex items-center justify-between py-2 px-3"
+                  :class="{ 'cursor-pointer hover:bg-gray-100 transition-colors': event.hasInfo }"
+                  @click="event.hasInfo ? toggleEventInfo(event.id) : null"
+                >
+                  <div class="flex items-center space-x-2">
+                    <span 
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                      :class="getEventTypeColor(event.type)"
+                    >
+                      <component :is="getEventIconComponent(event.type)" class="w-3 h-3" />
+                    </span>
+                    <span class="text-sm text-gray-900">{{ event.message }}</span>
+                    <span class="text-xs text-gray-500">({{ event.timestampRelative || formatRelativeTime(event.timestamp) }})</span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-xs text-gray-500">{{ formatDateTime(event.timestamp) }}</span>
+                    <ChevronDownIcon 
+                      :class="{ 
+                        'rotate-180': expandedEventId === event.id && event.hasInfo,
+                        'text-gray-400': !event.hasInfo,
+                        'text-gray-600': event.hasInfo
+                      }" 
+                      class="h-4 w-4 transition-transform duration-200" 
+                    />
+                  </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                  <span class="text-xs text-gray-500">{{ formatDateTime(event.timestamp) }}</span>
-                  <ChevronDownIcon 
-                    :class="{ 
-                      'rotate-180': expandedEventId === event.id && event.hasInfo,
-                      'text-gray-400': !event.hasInfo,
-                      'text-gray-600': event.hasInfo
-                    }" 
-                    class="h-4 w-4 transition-transform duration-200" 
-                  />
-                </div>
-              </div>
-              
-              <!-- Expandable info section -->
-              <div v-if="expandedEventId === event.id && event.hasInfo" class="px-3 pb-3">
-                <LoadingSpinner v-if="loadingEventInfo" size="sm" text="Loading info..." />
-                <div v-else-if="currentEventInfo" class="mt-2">
-                  <div class="bg-gray-900 text-green-400 text-xs rounded-md font-mono relative">
-                    <div class="p-3 overflow-auto max-h-80" ref="infoContainer">
-                      <div v-for="(line, index) in displayedInfoLines" :key="index" v-html="highlightLogLine(line)"></div>
-                    </div>
-                    <div v-if="currentEventInfo.hasMore" class="border-t border-gray-700 p-2 text-center">
-                      <button
-                        @click="loadMoreInfoLines"
-                        :disabled="loadingMoreInfoLines"
-                        class="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
-                      >
-                        <LoadingSpinner v-if="loadingMoreInfoLines" size="sm" class="inline mr-1" />
-                        {{ loadingMoreInfoLines ? 'Loading...' : 'Load More Lines' }}
-                      </button>
+                
+                <!-- Expandable info section -->
+                <div v-if="expandedEventId === event.id && event.hasInfo" class="px-3 pb-3">
+                  <LoadingSpinner v-if="loadingEventInfo" size="sm" text="Loading info..." />
+                  <div v-else-if="currentEventInfo" class="mt-2">
+                    <div class="bg-gray-900 text-green-400 text-xs rounded-md font-mono relative">
+                      <div class="p-3 overflow-auto max-h-80" ref="infoContainer">
+                        <div v-for="(line, index) in displayedInfoLines" :key="index" v-html="highlightLogLine(line)"></div>
+                      </div>
+                      <div v-if="currentEventInfo.hasMore" class="border-t border-gray-700 p-2 text-center">
+                        <button
+                          @click="loadMoreInfoLines"
+                          :disabled="loadingMoreInfoLines"
+                          class="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
+                        >
+                          <LoadingSpinner v-if="loadingMoreInfoLines" size="sm" class="inline mr-1" />
+                          {{ loadingMoreInfoLines ? 'Loading...' : 'Load More Lines' }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              <!-- Visual separator after start events (except for the last event) -->
+              <div 
+                v-if="event.type === 'start' && index < sortedEvents.length - 1" 
+                class="flex items-center my-4"
+              >
+                <div class="flex-grow border-t border-gray-300"></div>
+                <!-- <span class="px-3 text-xs text-gray-500 bg-white">New Backup Session</span> -->
+                <!-- <div class="flex-grow border-t border-gray-300"></div> -->
               </div>
             </div>
           </div>
