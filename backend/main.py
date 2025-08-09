@@ -316,6 +316,31 @@ async def get_event_info(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@app.post("/api/jobs/{job_id}/sync", response_model=Dict[str, Any])
+async def sync_job_summary(
+    job_id: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Sync job summary by processing all events chronologically"""
+    try:
+        # Verify job exists in configuration
+        job_configs = storage.get_all_job_configs()
+        if job_id not in job_configs:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        result = storage.sync_job_summary_from_events(job_id)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error syncing job summary for {job_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @app.post("/api/push/event", response_model=PushResponse)
 async def push_event(request: PushEventRequest, api_token: str = Depends(get_api_token)):
     """Push a new event for a job"""

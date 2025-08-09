@@ -1002,34 +1002,44 @@ class DataStorage:
             return None
 
 
-    def _update_summary_from_event(self, job_id: str, event_type: str, timestamp: datetime, extra: Optional[Dict[str, Any]] = None):
-        """Update job summary based on new event"""
-        try:
-            job_dir = self.data_dir / job_id
-            summary_file = job_dir / "job_summary.json"
-
-            # Load existing summary or create new
+    def _process_event_for_summary(self, job_id: str, event_type: str, timestamp: datetime, extra: Optional[Dict[str, Any]] = None, cache_data: Optional[Dict[str, Any]] = None) -> bool:
+        """Process a single event and update the provided cache_data dict"""
+        if cache_data is None:
             cache_data = {}
-            if summary_file.exists():
-                with open(summary_file, 'r', encoding='utf-8') as f:
-                    cache_data = json.load(f)
-
-            # Update based on event type - only consider "create" action for overall status
-            action = extra.get('action') if extra else None
             
-            if event_type in ['success', 'failed'] and action == 'create':
-                # Update status based on last success/failed event with "create" action
+        action = extra.get('action') if extra else None
+        
+        # Only process relevant events with "create" action
+        if event_type in ['start', 'stop', 'success', 'failed'] and action == 'create':
+            if event_type == 'start':
+                # Update last_backup timestamp when backup starts
+                cache_data['last_backup'] = timestamp.isoformat()
+                # Don't change status for start events
+                
+            elif event_type in ['success', 'failed']:
+                # Update status and timestamps for completion events
                 cache_data['status'] = event_type
                 cache_data['last_backup'] = timestamp.isoformat()
                 
                 if event_type == 'success':
                     cache_data['last_successful_backup'] = timestamp.isoformat()
+                    
+            return True  # Event was processed
+        
+        return False  # Event was not processed
 
-            # Update last updated timestamp
-            cache_data['last_updated'] = datetime.now().isoformat()
+
+    def _save_job_summary(self, job_id: str, cache_data: Dict[str, Any]):
+        """Save the job summary data to file with proper defaults"""
+        try:
+            job_dir = self.data_dir / job_id
+            job_summary_file = job_dir / "job_summary.json"
+            
+            # Update metadata
             cache_data['job_id'] = job_id
-
-            # Preserve existing fields
+            cache_data['last_updated'] = datetime.now().isoformat()
+            
+            # Ensure all required fields have defaults
             cache_data.setdefault('archive_count', 0)
             cache_data.setdefault('full_size', '0 B')
             cache_data.setdefault('compressed_size', '0 B')
@@ -1040,8 +1050,101 @@ class DataStorage:
             cache_data.setdefault('status', 'unknown')
 
             # Save updated summary
-            with open(summary_file, 'w', encoding='utf-8') as f:
+            with open(job_summary_file, 'w', encoding='utf-8') as f:
                 json.dump(cache_data, f, indent=2)
+                
+        except Exception as e:
+            logger.error(f"Error saving job summary for {job_id}: {e}")
+            raise
+
+
+    def sync_job_summary_from_events(self, job_id: str) -> Dict[str, Any]:
+        """Sync job summary by reading all events chronologically and rebuilding the summary"""
+        try:
+            job_dir = self.data_dir / job_id
+            if not job_dir.exists():
+                return {"success": False, "message": "Job directory not found", "events_processed": 0}
+
+            # Find all event files
+            event_files = list(job_dir.glob("event_*.json"))
+            
+            if not event_files:
+                return {"success": False, "message": "No events found for job", "events_processed": 0}
+
+            # Load events with their timestamps for chronological sorting
+            events_with_timestamps = []
+            for event_file in event_files:
+                try:
+                    with open(event_file, 'r', encoding='utf-8') as f:
+                        event_data = json.load(f)
+                    timestamp = datetime.fromisoformat(event_data['timestamp'])
+                    events_with_timestamps.append((timestamp, event_data))
+                except Exception as e:
+                    logger.error(f"Error loading event file {event_file}: {e}")
+                    continue
+
+            # Sort by timestamp (oldest first for chronological processing)
+            events_with_timestamps.sort(key=lambda x: x[0])
+            
+            # Initialize summary data
+            job_summary_file = job_dir / "job_summary.json"
+            cache_data = {}
+            
+            # Load existing summary to preserve non-event data (archive stats, etc.)
+            if job_summary_file.exists():
+                with open(job_summary_file, 'r', encoding='utf-8') as f:
+                    cache_data = json.load(f)
+
+            # Reset event-driven fields
+            cache_data['status'] = 'unknown'
+            cache_data['last_backup'] = None
+            cache_data['last_successful_backup'] = None
+
+            # Process events chronologically using the consolidated function
+            events_processed = 0
+            for timestamp, event_data in events_with_timestamps:
+                event_type = event_data.get('type')
+                extra = event_data.get('extra', {})
+                
+                if self._process_event_for_summary(job_id, event_type, timestamp, extra, cache_data):
+                    events_processed += 1
+
+            # Save the updated summary
+            self._save_job_summary(job_id, cache_data)
+
+            logger.info(f"Synced job summary for {job_id} from {events_processed} events")
+            
+            return {
+                "success": True, 
+                "message": f"Successfully synced job summary from {events_processed} events",
+                "events_processed": events_processed,
+                "final_status": cache_data.get('status'),
+                "last_backup": cache_data.get('last_backup'),
+                "last_successful_backup": cache_data.get('last_successful_backup')
+            }
+
+        except Exception as e:
+            logger.error(f"Error syncing job summary from events for {job_id}: {e}")
+            return {"success": False, "message": f"Error during sync: {str(e)}", "events_processed": 0}
+
+
+    def _update_summary_from_event(self, job_id: str, event_type: str, timestamp: datetime, extra: Optional[Dict[str, Any]] = None):
+        """Update job summary based on new event using consolidated logic"""
+        try:
+            job_dir = self.data_dir / job_id
+            summary_file = job_dir / "job_summary.json"
+
+            # Load existing summary or create new
+            cache_data = {}
+            if summary_file.exists():
+                with open(summary_file, 'r', encoding='utf-8') as f:
+                    cache_data = json.load(f)
+
+            # Process the event using the consolidated function
+            self._process_event_for_summary(job_id, event_type, timestamp, extra, cache_data)
+
+            # Save the updated summary
+            self._save_job_summary(job_id, cache_data)
 
         except Exception as e:
             logger.error(f"Error updating summary from event for {job_id}: {e}")

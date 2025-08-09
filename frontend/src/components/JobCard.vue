@@ -31,13 +31,40 @@
             <RefreshIcon :class="{ 'animate-spin': isRefreshing }" />
           </button>
           
-          <RouterLink
-            :to="`/jobs/${job.jobId}/settings`"
-            class="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
-            title="Job settings"
-          >
-            <CogIcon />
-          </RouterLink>
+          <!-- 3-dots menu -->
+          <div class="relative">
+            <button
+              @click="toggleDropdown"
+              class="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              title="Job actions"
+            >
+              <DotsVerticalIcon />
+            </button>
+            
+            <!-- Custom dropdown -->
+            <div
+              v-if="showDropdown"
+              class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+              @click.stop
+            >
+              <RouterLink
+                :to="`/jobs/${job.jobId}/settings`"
+                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                @click="closeDropdown"
+              >
+                <CogIcon class="w-4 h-4 mr-3" />
+                Settings
+              </RouterLink>
+              <button
+                @click="syncJob"
+                :disabled="isSyncing"
+                class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                <RefreshIcon :class="['w-4 h-4 mr-3', { 'animate-spin': isSyncing }]" />
+                {{ isSyncing ? 'Syncing...' : 'Sync' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -250,13 +277,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Job, Archive, BackupEvent, EventInfoDetails } from '@/types'
 import { apiService } from '@/services/api'
 import { formatDateTime, formatRelativeTime, getStatusColor, getStatusIcon, getScheduleStatusText, getEventTypeColor } from '@/utils'
 import RefreshIcon from '@/components/icons/RefreshIcon.vue'
 import CogIcon from '@/components/icons/CogIcon.vue'
+import DotsVerticalIcon from '@/components/icons/DotsVerticalIcon.vue'
 import ChevronDownIcon from '@/components/icons/ChevronDownIcon.vue'
 import CheckIcon from '@/components/icons/CheckIcon.vue'
 import ErrorIcon from '@/components/icons/ErrorIcon.vue'
@@ -316,6 +344,10 @@ const loadingEvents = ref(false)
 const loadingMoreArchives = ref(false)
 const loadingMoreInfoLines = ref(false)
 const isRefreshing = ref(false)
+const isSyncing = ref(false)
+
+// Dropdown state
+const showDropdown = ref(false)
 
 // Pagination
 const archivesOffset = ref(0)
@@ -520,6 +552,36 @@ const toggleArchiveSortOrder = async () => {
   await loadArchives()
 }
 
+// Dropdown methods
+const toggleDropdown = () => {
+  showDropdown.value = !showDropdown.value
+}
+
+const closeDropdown = () => {
+  showDropdown.value = false
+}
+
+// Sync job method
+const syncJob = async () => {
+  if (isSyncing.value) return
+  
+  isSyncing.value = true
+  try {
+    await apiService.syncJobSummary(props.job.jobId)
+    // Close dropdown after successful sync
+    closeDropdown()
+    // Emit refresh to update the job data
+    emit('refresh')
+  } catch (error) {
+    console.error('Failed to sync job:', error)
+    // You could add a toast notification here if you have one
+  } finally {
+    setTimeout(() => {
+      isSyncing.value = false
+    }, 1000)
+  }
+}
+
 // Watch for external collapse requests
 const collapseAll = () => {
   showArchives.value = false
@@ -534,7 +596,23 @@ onMounted(async () => {
   if (showEvents.value && events.value.length === 0) {
     await loadEvents()
   }
+  
+  // Add click outside listener for dropdown
+  document.addEventListener('click', handleClickOutside)
 })
+
+// Cleanup event listener
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// Handle click outside dropdown
+const handleClickOutside = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (!target.closest('.relative')) {
+    showDropdown.value = false
+  }
+}
 
 // Expose collapse method for parent component
 defineExpose({
