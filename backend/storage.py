@@ -804,7 +804,6 @@ class DataStorage:
             cache_data['job_id'] = job_id
             cache_data.setdefault('backup_type', 'borgmatic')
             cache_data.setdefault('status', 'unknown')
-            cache_data.setdefault('schedule_status', 'unknown')
 
             # Save updated summary
             with open(summary_file, 'w', encoding='utf-8') as f:
@@ -1015,11 +1014,11 @@ class DataStorage:
                 with open(summary_file, 'r', encoding='utf-8') as f:
                     cache_data = json.load(f)
 
-            # Update based on event type - only consider "everything" action for overall status
+            # Update based on event type - only consider "create" action for overall status
             action = extra.get('action') if extra else None
             
-            if event_type in ['success', 'failed'] and action == 'everything':
-                # Update status based on last success/failed event with "everything" action
+            if event_type in ['success', 'failed'] and action == 'create':
+                # Update status based on last success/failed event with "create" action
                 cache_data['status'] = event_type
                 cache_data['last_backup'] = timestamp.isoformat()
                 
@@ -1038,6 +1037,7 @@ class DataStorage:
             cache_data.setdefault('compression_ratio', '0%')
             cache_data.setdefault('repository_path', '')
             cache_data.setdefault('backup_type', 'borgmatic')
+            cache_data.setdefault('status', 'unknown')
 
             # Save updated summary
             with open(summary_file, 'w', encoding='utf-8') as f:
