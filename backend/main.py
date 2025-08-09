@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException, Depends, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import toml
 from models import Job, Archive, BackupRun, JobSummary, BackupEvent, PushEventRequest
@@ -180,6 +181,12 @@ async def verify_token(current_user: str = Depends(get_current_user)):
 
 # API Routes
 
+@app.get("/")
+async def root():
+    """Redirect root to UI"""
+    return RedirectResponse(url="/ui/", status_code=302)
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -338,6 +345,84 @@ async def sync_job_summary(
         raise
     except Exception as e:
         logger.error(f"Error syncing job summary for {job_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/api/chart", response_model=Dict[str, Any])
+async def get_chart_data(
+    type: str = Query(..., regex="^(backup-status|backup-overdue)$"),
+    tags: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    current_user: str = Depends(get_current_user)
+):
+    """Get chart data for dashboard visualization"""
+    try:
+        logger.info(f"Chart data request: type={type}, tags={tags}, search={search}")
+        
+        # Parse tags if provided
+        tag_list = []
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+        
+        # Get all jobs
+        jobs = storage.get_all_jobs()
+        logger.info(f"Retrieved {len(jobs)} jobs from storage")
+        
+        # Apply search filter if provided
+        if search:
+            search_lower = search.lower()
+            jobs = [job for job in jobs if search_lower in job.name.lower()]
+            logger.info(f"After search filter: {len(jobs)} jobs")
+        
+        # Apply tag filter if provided
+        if tag_list:
+            jobs = [job for job in jobs if job.tags and any(tag in job.tags for tag in tag_list)]
+            logger.info(f"After tag filter: {len(jobs)} jobs")
+        
+        chart_data = []
+        
+        if type == "backup-status":
+            # Count jobs by backup status
+            status_counts = {}
+            for job in jobs:
+                status = job.status or "unknown"
+                status_counts[status] = status_counts.get(status, 0) + 1
+            
+            logger.info(f"Status counts: {status_counts}")
+            
+            # Convert to chart data format
+            chart_data = [
+                {"name": status.capitalize(), "value": count}
+                for status, count in status_counts.items()
+            ]
+            
+        elif type == "backup-overdue":
+            # Count jobs by schedule status
+            schedule_counts = {}
+            for job in jobs:
+                schedule_status = job.scheduleStatus or "no-schedule"
+                schedule_counts[schedule_status] = schedule_counts.get(schedule_status, 0) + 1
+            
+            logger.info(f"Schedule counts: {schedule_counts}")
+            
+            # Convert to chart data format
+            chart_data = [
+                {"name": status.replace("-", " ").title(), "value": count}
+                for status, count in schedule_counts.items()
+            ]
+        
+        result = {
+            "success": True,
+            "type": type,
+            "data": chart_data,
+            "total_jobs": len(jobs)
+        }
+        
+        logger.info(f"Chart data response: {result}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting chart data: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

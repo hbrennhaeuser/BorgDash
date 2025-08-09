@@ -1,48 +1,53 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// Import views
-import Dashboard from './views/Dashboard.vue'
-import NewJob from './views/NewJob.vue'
-import JobSettings from './views/JobSettings.vue'
-import AppSettings from './views/AppSettings.vue'
-import Login from './views/Login.vue'
-
 // Import auth service for route guards
 import { authService, isAuthenticated } from '@/services/auth'
 
-// Create router
+// Create router with lazy-loaded components
 const router = createRouter({
   history: createWebHistory('/ui/'),
   routes: [
     {
       path: '/login',
       name: 'Login',
-      component: Login,
+      component: () => import('./views/Login.vue'),
       meta: { requiresAuth: false }
     },
     {
       path: '/',
       name: 'Dashboard',
-      component: Dashboard,
+      component: () => import('./views/Dashboard.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/jobs',
+      name: 'Jobs',
+      component: () => import('./views/Jobs.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/jobs/new',
       name: 'NewJob',
-      component: NewJob,
+      component: () => import('./views/NewJob.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/jobs/:jobName/settings',
       name: 'JobSettings',
-      component: JobSettings,
+      component: () => import('./views/JobSettings.vue'),
       props: true,
       meta: { requiresAuth: true }
     },
     {
       path: '/settings',
       name: 'AppSettings',
-      component: AppSettings,
+      component: () => import('./views/AppSettings.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: () => import('./views/NotFound.vue'),
       meta: { requiresAuth: true }
     }
   ]

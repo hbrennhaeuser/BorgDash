@@ -81,6 +81,45 @@ class ApiService {
   async getEventInfo(jobId: string, eventId: string, offset: number = 0, limit: number = 50): Promise<EventInfoDetails> {
     return this.request<EventInfoDetails>(`/jobs/${jobId}/events/${eventId}/info?offset=${offset}&limit=${limit}`)
   }
+
+  // Sync job summary from events
+  async syncJobSummary(jobId: string): Promise<{ success: boolean; message: string; events_processed: number; final_status?: string; last_backup?: string; last_successful_backup?: string }> {
+    const response = await fetch(`${API_BASE}/jobs/${jobId}/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authService.getAuthHeaders()
+      }
+    })
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        authService.logout()
+        const basePath = router.options.history.base.replace(/\/$/, '')
+        window.location.href = `${basePath}/login`
+        throw new Error('Authentication expired. Please log in again.')
+      }
+      throw new Error(`Sync failed: ${response.statusText}`)
+    }
+    
+    return response.json()
+  }
+
+  // Get chart data for dashboard
+  async getChartData(type: string, params: { tags?: string[]; search?: string }): Promise<{ success: boolean; type: string; data: Array<{ name: string; value: number }>; total_jobs: number }> {
+    const queryParams = new URLSearchParams()
+    queryParams.append('type', type)
+    
+    if (params.tags && params.tags.length > 0) {
+      queryParams.append('tags', params.tags.join(','))
+    }
+    
+    if (params.search) {
+      queryParams.append('search', params.search)
+    }
+    
+    return this.request<{ success: boolean; type: string; data: Array<{ name: string; value: number }>; total_jobs: number }>(`/chart?${queryParams.toString()}`)
+  }
 }
 
 export const apiService = new ApiService()
