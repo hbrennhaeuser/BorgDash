@@ -78,7 +78,7 @@ submit_borgmatic_rinfo() {
     
     log "Pushing rinfo to BorgDash-API"
     # Submit to API
-    if ! curl -s -f -X POST "${API_URL}/api/push/borgmatic/rinfo" \
+    if ! curl -s -f --max-time 60 -X POST "${API_URL}/api/push/borgmatic/rinfo" \
         -H "Authorization: Bearer ${API_KEY}" \
         -H "Content-Type: application/json" \
         -d "$payload" >/dev/null 2>&1; then
@@ -105,7 +105,7 @@ submit_borgmatic_info() {
 
     log "Pushing info to BorgDash-API"
     # Submit to API
-    if ! curl -s -f -X POST "${API_URL}/api/push/borgmatic/info" \
+    if ! curl -s -f --max-time 60 -X POST "${API_URL}/api/push/borgmatic/info" \
         -H "Authorization: Bearer ${API_KEY}" \
         -H "Content-Type: application/json" \
         -d "$payload" >/dev/null 2>&1; then
@@ -158,7 +158,7 @@ EOF
     fi
     
 
-    local response=$(curl -s -w "%{http_code}" -X POST \
+    local response=$(curl -s -w "%{http_code}" --max-time 10 -X POST \
         "${API_URL}/api/push/event" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $API_KEY" \
@@ -203,7 +203,7 @@ after_create_finish() {
     }
 
 # Hook: after create fail (error)
-after_craete_fail() {
+after_create_fail() {
     log "Archive creation failed for job: $BACKUP_JOB_ID"
     
     # Prepare info with failure details
