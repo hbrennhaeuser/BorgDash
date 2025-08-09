@@ -1,5 +1,6 @@
 import type { Job, JobStats, Archive, BackupRun, BackupRunDetails, BackupEvent, EventInfoDetails, PaginatedResponse } from '@/types'
 import { authService } from '@/services/auth'
+import router from '@/router'
 
 const API_BASE = '/api'
 
@@ -18,8 +19,9 @@ class ApiService {
       if (response.status === 401) {
         // Unauthorized - token likely expired
         authService.logout()
-        // Redirect to login page
-        window.location.href = '/login'
+        // Use the router's base path for login redirect
+        const basePath = router.options.history.base.replace(/\/$/, '') // Remove trailing slash
+        window.location.href = `${basePath}/login`
         throw new Error('Authentication expired. Please log in again.')
       }
       throw new Error(`API request failed: ${response.statusText}`)
