@@ -35,8 +35,21 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Stage 3: Final production image
 FROM python:3.13-slim AS production
 
-WORKDIR /app
 
+# Build metadata arguments for OCI labels
+ARG VERSION
+ARG REVISION
+ARG BUILD_DATE
+
+LABEL org.opencontainers.image.title="BorgDash"
+LABEL org.opencontainers.image.authors="hbrennhaeuser"
+LABEL org.opencontainers.image.description="BorgDash provides a simple, central overview of all your Borg backups—without needing your repo key or sensitive data."
+LABEL org.opencontainers.image.source="https://github.com/hbrennhaeuser/borgdash"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.revision="${REVISION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+
+WORKDIR /app
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
