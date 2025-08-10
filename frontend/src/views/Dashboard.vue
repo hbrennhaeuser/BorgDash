@@ -16,25 +16,29 @@
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Backup Status Donut Chart -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Backup Status</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Backup Status</h3>
+              <p class="text-sm text-gray-500 mb-4">Click on chart segments to filter jobs</p>
               <DonutChart 
                 chart-id="backup-status" 
                 type="backup-status"
                 :tags="[]"
                 :search="''"
-                class="h-64"
+                class="h-64 cursor-pointer"
+                @segment-click="handleChartClick"
               />
             </div>
 
             <!-- Backup Overdue Donut Chart -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Backup Schedule Status</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Backup Schedule Status</h3>
+              <p class="text-sm text-gray-500 mb-4">Click on chart segments to filter jobs</p>
               <DonutChart 
                 chart-id="backup-overdue" 
                 type="backup-overdue"
                 :tags="[]"
                 :search="''"
-                class="h-64"
+                class="h-64 cursor-pointer"
+                @segment-click="handleChartClick"
               />
             </div>
 
@@ -96,18 +100,32 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import DonutChart from '@/components/charts/DonutChart.vue'
 import { apiService } from '@/services/api'
 import type { Job } from '@/types'
 
+// Router for navigation
+const router = useRouter()
+
 // State
 const totalJobs = ref(0)
 const successfulJobs = ref(0)
 const failedJobs = ref(0)
 const warningJobs = ref(0)
+
+// Handle chart segment clicks
+const handleChartClick = (filter: { type: string, value: string }) => {
+  // Navigate to jobs page with pre-applied filter
+  router.push({
+    path: '/jobs',
+    query: {
+      [filter.type]: filter.value
+    }
+  })
+}
 
 // Load dashboard data
 const loadDashboardData = async () => {

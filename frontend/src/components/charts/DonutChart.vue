@@ -34,6 +34,11 @@ const props = withDefaults(defineProps<Props>(), {
   className: 'w-full h-64'
 })
 
+// Define emits
+const emit = defineEmits<{
+  segmentClick: [filter: { type: string, value: string }]
+}>()
+
 const chartContainer = ref<HTMLElement>()
 const loading = ref(true)
 const hasData = ref(false)
@@ -120,6 +125,11 @@ const initChart = async () => {
                 show: true,
                 fontSize: 20,
                 fontWeight: 'bold'
+              },
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
               }
             },
             labelLine: {
@@ -171,6 +181,11 @@ const initChart = async () => {
                 show: true,
                 fontSize: 20,
                 fontWeight: 'bold'
+              },
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
               }
             },
             labelLine: {
@@ -190,6 +205,38 @@ const initChart = async () => {
 
     if (option) {
       chartInstance.setOption(option)
+      
+      // Add click event handler
+      chartInstance.on('click', (params: any) => {
+        if (params.data && params.data.name) {
+          const segmentName = params.data.name.toLowerCase()
+          
+          if (props.type === 'backup-status') {
+            // Map status names to filter values
+            emit('segmentClick', { 
+              type: 'status', 
+              value: `status-${segmentName}` 
+            })
+          } else if (props.type === 'backup-overdue') {
+            // Map schedule status names to filter values
+            let filterValue = ''
+            if (segmentName === 'on time') {
+              filterValue = 'schedule-on-time'
+            } else if (segmentName === 'overdue') {
+              filterValue = 'schedule-overdue'
+            } else if (segmentName === 'unknown') {
+              filterValue = 'schedule-unknown'
+            }
+            
+            if (filterValue) {
+              emit('segmentClick', { 
+                type: 'status', 
+                value: filterValue 
+              })
+            }
+          }
+        }
+      })
     }
 
     // Handle resize

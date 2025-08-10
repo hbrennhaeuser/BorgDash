@@ -293,8 +293,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import type { Job } from '@/types'
 import { apiService } from '@/services/api'
 import AppHeader from '@/components/AppHeader.vue'
@@ -306,6 +306,10 @@ import SearchIcon from '@/components/icons/SearchIcon.vue'
 import XMarkIcon from '@/components/icons/XMarkIcon.vue'
 import ChevronUpIcon from '@/components/icons/ChevronUpIcon.vue'
 import ChevronDownIcon from '@/components/icons/ChevronDownIcon.vue'
+
+// Router for query parameter handling
+const route = useRoute()
+const router = useRouter()
 
 // Simple debounce function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -518,17 +522,6 @@ const toggleTagFilter = (tag: string) => {
   }
 }
 
-const addTagFilter = () => {
-  if (selectedTagFilter.value && !selectedTags.value.includes(selectedTagFilter.value)) {
-    selectedTags.value.push(selectedTagFilter.value)
-    selectedTagFilter.value = ''
-  }
-}
-
-const removeTagFilter = (tag: string) => {
-  selectedTags.value = selectedTags.value.filter(t => t !== tag)
-}
-
 const clearAllFilters = () => {
   searchQuery.value = ''
   selectedTags.value = []
@@ -536,10 +529,60 @@ const clearAllFilters = () => {
   selectedTagFilter.value = ''
   showTagDropdown.value = false
   showStatusDropdown.value = false
+  
+  // Update URL to remove query parameters
+  router.replace({ path: '/jobs' })
 }
+
+// Initialize filters from URL query parameters
+const initializeFiltersFromQuery = () => {
+  const query = route.query
+  
+  // Initialize status filters
+  if (query.status && typeof query.status === 'string') {
+    selectedStatusFilters.value = [query.status]
+  }
+  
+  // Initialize tag filters
+  if (query.tags && typeof query.tags === 'string') {
+    selectedTags.value = query.tags.split(',')
+  }
+  
+  // Initialize search query
+  if (query.search && typeof query.search === 'string') {
+    searchQuery.value = query.search
+  }
+}
+
+// Update URL when filters change (without page reload)
+const updateURL = () => {
+  const query: Record<string, string> = {}
+  
+  if (selectedStatusFilters.value.length === 1) {
+    query.status = selectedStatusFilters.value[0]
+  }
+  
+  if (selectedTags.value.length > 0) {
+    query.tags = selectedTags.value.join(',')
+  }
+  
+  if (searchQuery.value) {
+    query.search = searchQuery.value
+  }
+  
+  // Update URL without triggering navigation
+  router.replace({ path: '/jobs', query })
+}
+
+// Watch for filter changes to update URL
+watch(() => [selectedStatusFilters.value, selectedTags.value, searchQuery.value], updateURL, { deep: true })
 
 // Lifecycle
 onMounted(() => {
+  // Initialize filters from URL query parameters first
+  initializeFiltersFromQuery()
+  
+  // Then load jobs
   loadJobs()
   
   // Listen for global refresh events from the header
