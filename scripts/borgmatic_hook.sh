@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-# Borgmatic hook script for BorgDash monitoring
+# BorgDash Borgmatic Hook Script
+#
+# Description: Bash hook script for Borgmatic to push backup status and info to BorgDash monitoring backend.
+# Project: BorgDash - Central overview of Borg backups without repository credentials or sensitive data.
+# Project Version: 0.1.0
+# Script Version: 1.0.0
+# Source: https://github.com/hbrennhaeuser/BorgDash
+# License: GNU General Public License v3.0
+# Copyright (C) 2025 hbrennhaeuser
+#
 
 # Global variables
 declare -A ARGS
@@ -78,7 +87,7 @@ submit_borgmatic_rinfo() {
     
     log "Pushing rinfo to BorgDash-API"
     # Submit to API
-    if ! curl -s -f --max-time 60 -X POST "${API_URL}/api/push/borgmatic/rinfo" \
+    if ! curl -s -f --max-time 60 -X POST "${API_URL}/api/v1/push/borgmatic/rinfo" \
         -H "Authorization: Bearer ${API_KEY}" \
         -H "Content-Type: application/json" \
         -d "$payload" >/dev/null 2>&1; then
@@ -105,7 +114,7 @@ submit_borgmatic_info() {
 
     log "Pushing info to BorgDash-API"
     # Submit to API
-    if ! curl -s -f --max-time 60 -X POST "${API_URL}/api/push/borgmatic/info" \
+    if ! curl -s -f --max-time 60 -X POST "${API_URL}/api/v1/push/borgmatic/info" \
         -H "Authorization: Bearer ${API_KEY}" \
         -H "Content-Type: application/json" \
         -d "$payload" >/dev/null 2>&1; then
@@ -159,7 +168,7 @@ EOF
     
 
     local response=$(curl -s -w "%{http_code}" --max-time 10 -X POST \
-        "${API_URL}/api/push/event" \
+        "${API_URL}/api/v1/push/event" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $API_KEY" \
         -d "$json_payload")

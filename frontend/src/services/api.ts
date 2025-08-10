@@ -2,7 +2,7 @@ import type { Job, JobStats, Archive, BackupRun, BackupRunDetails, BackupEvent, 
 import { authService } from '@/services/auth'
 import router from '@/router'
 
-const API_BASE = '/api'
+const API_BASE = '/api/v1'
 
 class ApiService {
   private async request<T>(endpoint: string): Promise<T> {
@@ -118,7 +118,28 @@ class ApiService {
       queryParams.append('search', params.search)
     }
     
-    return this.request<{ success: boolean; type: string; data: Array<{ name: string; value: number }>; total_jobs: number }>(`/chart?${queryParams.toString()}`)
+    // Chart endpoint is under /ui/chart (UI component, not API)
+    const headers = {
+      'Content-Type': 'application/json',
+      ...authService.getAuthHeaders()
+    }
+
+    const response = await fetch(`/ui/chart?${queryParams.toString()}`, {
+      headers
+    })
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Unauthorized - token likely expired
+        authService.logout()
+        // Use the router's base path for login redirect
+        const basePath = router.options.history.base.replace(/\/$/, '') // Remove trailing slash
+        window.location.href = `${basePath}/login`
+        throw new Error('Authentication expired. Please log in again.')
+      }
+      throw new Error(`Chart API request failed: ${response.statusText}`)
+    }
+    return response.json()
   }
 }
 

@@ -134,17 +134,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
-# Serve static frontend (Vue build output) under /ui
-frontend_dist = Path(__file__).parent / "static"
-if frontend_dist.exists():
-    app.mount("/ui", StaticFiles(directory=str(frontend_dist), html=True), name="ui-static")
-else:
-    # Fallback for development - look for dist in parent directory
-    frontend_dist_dev = Path(__file__).parent.parent / "frontend" / "dist"
-    if frontend_dist_dev.exists():
-        app.mount("/ui", StaticFiles(directory=str(frontend_dist_dev), html=True), name="ui-static")
-
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -156,7 +145,7 @@ app.add_middleware(
 
 
 # Authentication endpoints
-@app.post("/api/auth/login", response_model=LoginResponse)
+@app.post("/api/v1/auth/login", response_model=LoginResponse)
 async def login(request: LoginRequest):
     """Authenticate user and return JWT token"""
     if not auth_manager.verify_credentials(request.username, request.password):
@@ -173,7 +162,7 @@ async def login(request: LoginRequest):
     )
 
 
-@app.post("/auth/verify")
+@app.post("/api/v1/auth/verify")
 async def verify_token(current_user: str = Depends(get_current_user)):
     """Verify the current token is valid and return user info"""
     return {"valid": True, "user": current_user}
@@ -197,7 +186,7 @@ async def health_check():
     }
 
 
-@app.get("/api/jobs", response_model=List[JobSummary])
+@app.get("/api/v1/jobs", response_model=List[JobSummary])
 async def get_jobs(current_user: str = Depends(get_current_user)):
     """Get all backup jobs with summary information"""
     try:
@@ -208,7 +197,7 @@ async def get_jobs(current_user: str = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/jobs/{job_id}", response_model=Job)
+@app.get("/api/v1/jobs/{job_id}", response_model=Job)
 async def get_job(job_id: str, current_user: str = Depends(get_current_user)):
     """Get detailed information for a specific job"""
     try:
@@ -223,7 +212,7 @@ async def get_job(job_id: str, current_user: str = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/jobs/{job_id}/archives", response_model=Dict[str, Any])
+@app.get("/api/v1/jobs/{job_id}/archives", response_model=Dict[str, Any])
 async def get_job_archives(
     job_id: str,
     current_user: str = Depends(get_current_user),
@@ -245,7 +234,7 @@ async def get_job_archives(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/jobs/{job_id}/runs", response_model=List[BackupRun])
+@app.get("/api/v1/jobs/{job_id}/runs", response_model=List[BackupRun])
 async def get_job_runs(
     job_id: str,
     current_user: str = Depends(get_current_user),
@@ -264,7 +253,7 @@ async def get_job_runs(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/jobs/{job_id}/runs/{run_id}", response_model=Dict[str, Any])
+@app.get("/api/v1/jobs/{job_id}/runs/{run_id}", response_model=Dict[str, Any])
 async def get_job_run_details(
     job_id: str,
     run_id: str,
@@ -286,7 +275,7 @@ async def get_job_run_details(
 
 
 # Event API Endpoints
-@app.get("/api/jobs/{job_id}/events", response_model=Dict[str, Any])
+@app.get("/api/v1/jobs/{job_id}/events", response_model=Dict[str, Any])
 async def get_job_events(
     job_id: str,
     offset: int = Query(0, ge=0),
@@ -304,7 +293,7 @@ async def get_job_events(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/jobs/{job_id}/events/{event_id}/info", response_model=Dict[str, Any])
+@app.get("/api/v1/jobs/{job_id}/events/{event_id}/info", response_model=Dict[str, Any])
 async def get_event_info(
     job_id: str,
     event_id: str,
@@ -323,7 +312,7 @@ async def get_event_info(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post("/api/jobs/{job_id}/sync", response_model=Dict[str, Any])
+@app.post("/api/v1/jobs/{job_id}/sync", response_model=Dict[str, Any])
 async def sync_job_summary(
     job_id: str,
     current_user: str = Depends(get_current_user)
@@ -348,7 +337,7 @@ async def sync_job_summary(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.get("/api/chart", response_model=Dict[str, Any])
+@app.get("/ui/chart", response_model=Dict[str, Any])
 async def get_chart_data(
     type: str = Query(..., regex="^(backup-status|backup-overdue)$"),
     tags: Optional[str] = Query(None),
@@ -426,7 +415,7 @@ async def get_chart_data(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post("/api/push/event", response_model=PushResponse)
+@app.post("/api/v1/push/event", response_model=PushResponse)
 async def push_event(request: PushEventRequest, api_token: str = Depends(get_api_token)):
     """Push a new event for a job"""
     # Verify API token has permission for this job
@@ -457,7 +446,7 @@ async def push_event(request: PushEventRequest, api_token: str = Depends(get_api
 
 
 # Push API Endpoints for Backup Data
-@app.post("/api/push/status", response_model=PushResponse)
+@app.post("/api/v1/push/status", response_model=PushResponse)
 async def push_status(request: PushStatusRequest, api_token: str = Depends(get_api_token)):
     """Push backup run status and logs"""
     # Verify API token has permission for this job
@@ -493,7 +482,7 @@ async def push_status(request: PushStatusRequest, api_token: str = Depends(get_a
         raise HTTPException(status_code=500, detail="Failed to store backup status")
 
 
-@app.post("/api/push/borg/info", response_model=PushResponse)
+@app.post("/api/v1/push/borg/info", response_model=PushResponse)
 async def push_borg_info(request: BorgInfoRequest, api_token: str = Depends(get_api_token)):
     """Push Borg repository info and archive list"""
     # Verify API token has permission for this job
@@ -522,7 +511,7 @@ async def push_borg_info(request: BorgInfoRequest, api_token: str = Depends(get_
         raise HTTPException(status_code=500, detail="Failed to store Borg info")
 
 
-@app.post("/api/push/borgmatic/info", response_model=PushResponse)
+@app.post("/api/v1/push/borgmatic/info", response_model=PushResponse)
 async def push_borgmatic_info(request: BorgmaticInfoRequest, api_token: str = Depends(get_api_token)):
     """Push Borgmatic repository info"""
     # Verify API token has permission for this job
@@ -572,7 +561,7 @@ async def push_borgmatic_info(request: BorgmaticInfoRequest, api_token: str = De
         raise HTTPException(status_code=500, detail="Failed to store Borgmatic info")
 
 
-@app.post("/api/push/borgmatic/rinfo", response_model=PushResponse)
+@app.post("/api/v1/push/borgmatic/rinfo", response_model=PushResponse)
 async def push_borgmatic_rinfo(request: BorgmaticRinfoRequest, api_token: str = Depends(get_api_token)):
     """Push Borgmatic repository and archive info"""
     # Verify API token has permission for this job
@@ -625,20 +614,32 @@ async def push_borgmatic_rinfo(request: BorgmaticRinfoRequest, api_token: str = 
 # Legacy endpoints (for backward compatibility)
 @app.post("/push/{job_id}/info")
 async def push_job_info_legacy(job_id: str):
-    """Legacy endpoint - use /api/push/borg/info or /api/push/borgmatic/info instead"""
+    """Legacy endpoint - use /api/v1/push/borg/info or /api/v1/push/borgmatic/info instead"""
     raise HTTPException(
         status_code=410, 
-        detail="This endpoint is deprecated. Use /api/push/borg/info or /api/push/borgmatic/info instead"
+        detail="This endpoint is deprecated. Use /api/v1/push/borg/info or /api/v1/push/borgmatic/info instead"
     )
 
 
 @app.post("/push/{job_id}/log")
 async def push_job_log_legacy(job_id: str):
-    """Legacy endpoint - use /api/push/status instead"""
+    """Legacy endpoint - use /api/v1/push/status instead"""
     raise HTTPException(
         status_code=410, 
-        detail="This endpoint is deprecated. Use /api/push/status instead"
+        detail="This endpoint is deprecated. Use /api/v1/push/status instead"
     )
+
+
+# Serve static frontend (Vue build output) under /ui
+# Note: This must be after all API routes to avoid conflicts
+frontend_dist = Path(__file__).parent / "static"
+if frontend_dist.exists():
+    app.mount("/ui", StaticFiles(directory=str(frontend_dist), html=True), name="ui-static")
+else:
+    # Fallback for development - look for dist in parent directory
+    frontend_dist_dev = Path(__file__).parent.parent / "frontend" / "dist"
+    if frontend_dist_dev.exists():
+        app.mount("/ui", StaticFiles(directory=str(frontend_dist_dev), html=True), name="ui-static")
 
 
 if __name__ == "__main__":
